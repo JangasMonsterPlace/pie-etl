@@ -1,0 +1,2 @@
+-r requirements/requirements-dependencies.txt
+-r requirements/requirements-testing.txt

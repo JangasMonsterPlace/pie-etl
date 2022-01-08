@@ -1,0 +1,7 @@
+- etl_csv_to_bigquery:
+    call: http.get
+    args:
+        url: https://us-central1-easy-as-pie-hackathon.cloudfunctions.net/load_to_bigquery
+    result: bigquery_result
+- return_result:
+    return: ${bigquery_result}
