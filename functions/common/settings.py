@@ -13,3 +13,7 @@ class GCP_Project(Enum):
 class ETL_Workflow(Enum):
     LOCATION = "us-central1"
     NAME = "etl"
+
+
+class GCP_Storage(Enum):
+    BUCKET_NAME = "bic-review-data"

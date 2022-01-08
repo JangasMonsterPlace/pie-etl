@@ -9,15 +9,22 @@ from google.cloud import workflows_v1beta
 from google.cloud.workflows import executions_v1beta
 
 from common.settings import GCP_Project, ETL_Workflow
+from common import extract_csv
 
 
 @functions_framework.http
 def load_to_bigquery(request: Request) -> str:
+    with extract_csv.CloudStorageLoader() as source:
+        for row in source.load_csv_data("DisneylandReviews.csv"):
+            print(row)
     return "Hello BigQuery"
 
 
 @functions_framework.http
 def load_to_elasticsearch(request: Request) -> str:
+    with extract_csv.CloudStorageLoader() as source:
+        for row in source.load_csv_data("DisneylandReviews.csv"):
+            continue
     return "Hello Elasticsearch"
 
 
@@ -35,3 +42,7 @@ def trigger_etl_pipeline(event: dict, context: google.cloud.functions.context):
         workflow=ETL_Workflow.NAME.value
     )
     execution_client.create_execution(parent=parent, execution=execution)
+
+
+if __name__ == "__main__":
+    load_to_bigquery(None)

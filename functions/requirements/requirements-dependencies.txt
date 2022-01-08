@@ -1,3 +1,5 @@
 Flask==2.0.2
 functions-framework==3.0.0
 google-cloud-workflows==1.5.0
+google-cloud-storage==1.44.0
+dataclasses-jsonschema==2.15.0
