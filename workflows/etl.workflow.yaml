@@ -1,7 +1,19 @@
-- etl_csv_to_bigquery:
-    call: http.get
-    args:
+main:
+  steps:
+  - etl_csv_to_bigquery:
+      call: http.get
+      args:
         url: https://us-central1-easy-as-pie-hackathon.cloudfunctions.net/load_to_bigquery
-    result: bigquery_result
-- return_result:
-    return: ${bigquery_result}
+      result: bigquery_result
+  - etl_csv_to_elasticsearch_result:
+      call: http.get
+      args:
+        url: https://us-central1-easy-as-pie-hackathon.cloudfunctions.net/load_to_elasticsearch
+      result: elasticsearch_result
+  - delete_bucket:
+      call: googleapis.storage.v1.objects.delete
+      args:
+        bucket: "bic-review-data"
+        object: "DisneylandReviews.csv"
+  - return_result:
+      return: [bigquery_result, elasticsearch_result]

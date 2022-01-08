@@ -2,3 +2,4 @@ venv/
 .idea/
 __pychache__/
 *.pyc
+*/.google-service-account-file.json
