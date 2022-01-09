@@ -3,12 +3,19 @@ from io import StringIO
 from dataclasses import dataclass
 from datetime import date
 from dataclasses_jsonschema import JsonSchemaMixin
-from typing import Generator
+from typing import Generator, List
 
 from google.cloud import storage
-from google.oauth2 import service_account
+from google.cloud import bigquery
 
 from .settings import GCP_Project, GCP_Storage
+
+
+BIG_QUERY_TYPE_MAPPER = {
+    "<class 'str'>": "STRING",
+    "<class 'int'>": "INTEGER",
+    "<class 'datetime.date'>": "DATE",
+}
 
 
 @dataclass
@@ -19,6 +26,18 @@ class CsvSinkFormat(JsonSchemaMixin):
     rating: int
     date: str
     text: str
+
+    def get_big_query_parameters(self) -> List[bigquery.ScalarQueryParameter]:
+        parameters = []
+        for field_name, d_type in self.__annotations__.items():
+            parameters.append(
+                bigquery.ScalarQueryParameter(
+                    name=field_name,
+                    type_=BIG_QUERY_TYPE_MAPPER[str(d_type)],
+                    value=self.__dict__[field_name]
+                )
+            )
+        return parameters
 
 
 @dataclass
@@ -43,8 +62,7 @@ class CsvSourceFormat(JsonSchemaMixin):
 
 class CloudStorageLoader:
     def __enter__(self):
-        credentials = service_account.Credentials.from_service_account_file(GCP_Project.CREDENTIALS_FILE_PATH.value)
-        self._storage_client = storage.Client(credentials=credentials)
+        self._storage_client = storage.Client(credentials=GCP_Project.CREDENTIALS.value)
         self._bucket = self._storage_client.get_bucket(GCP_Storage.BUCKET_NAME.value)
         return self
 
