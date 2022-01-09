@@ -18,6 +18,7 @@ class CsvSinkFormat(JsonSchemaMixin):
     rating: int
     date: str
     text: str
+    group: Optional[str] = None
     user: Optional[str] = None
     country: Optional[str] = None
     city: Optional[str] = None
@@ -34,7 +35,7 @@ class CsvSourceFormat(JsonSchemaMixin):
     city: Optional[str] = None
 
     @classmethod
-    def from_dict_to_sink(cls, data: dict, file_name: str, date_format: str) -> CsvSinkFormat:
+    def from_dict_to_sink(cls, data: dict, file_name: str, date_format: str, group: str) -> CsvSinkFormat:
         source = cls.from_dict(data)
         date = datetime.strptime(source.date, date_format).strftime("%Y-%m-%d")
         return CsvSinkFormat(
@@ -44,6 +45,7 @@ class CsvSourceFormat(JsonSchemaMixin):
             text=source.text,
             source_type="csv",
             source=file_name,
+            group=group,
             city=source.city,
             country=source.country,
             user=source.user
@@ -63,6 +65,7 @@ class CloudStorageLoader:
         blob = self._bucket.get_blob(file_name, client=self._storage_client)
         blob_io = StringIO(blob.download_as_string().decode('utf-8'))
         reader = csv.reader(blob_io)
+        group = next(reader)[1]
         date_format = next(reader)[1]
         header = next(reader)
         for row in reader:
@@ -70,6 +73,7 @@ class CloudStorageLoader:
                 yield CsvSourceFormat.from_dict_to_sink(
                     dict(zip(header, row)),
                     file_name=file_name,
+                    group=group,
                     date_format=date_format
                 )
             except ValueError:
