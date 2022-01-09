@@ -1,21 +1,13 @@
 import csv
 from io import StringIO
 from dataclasses import dataclass
-from datetime import date
+from datetime import datetime
 from dataclasses_jsonschema import JsonSchemaMixin
-from typing import Generator, List
+from typing import Generator, Optional
 
 from google.cloud import storage
-from google.cloud import bigquery
 
 from .settings import GCP_Project, GCP_Storage
-
-
-BIG_QUERY_TYPE_MAPPER = {
-    "<class 'str'>": "STRING",
-    "<class 'int'>": "INTEGER",
-    "<class 'datetime.date'>": "DATE",
-}
 
 
 @dataclass
@@ -26,18 +18,9 @@ class CsvSinkFormat(JsonSchemaMixin):
     rating: int
     date: str
     text: str
-
-    def get_big_query_parameters(self) -> List[bigquery.ScalarQueryParameter]:
-        parameters = []
-        for field_name, d_type in self.__annotations__.items():
-            parameters.append(
-                bigquery.ScalarQueryParameter(
-                    name=field_name,
-                    type_=BIG_QUERY_TYPE_MAPPER[str(d_type)],
-                    value=self.__dict__[field_name]
-                )
-            )
-        return parameters
+    user: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
 
 
 @dataclass
@@ -46,17 +29,24 @@ class CsvSourceFormat(JsonSchemaMixin):
     rating: str
     date: str
     text: str
+    user: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
 
     @classmethod
-    def from_dict_to_sink(cls, data: dict, file_name: str) -> CsvSinkFormat:
+    def from_dict_to_sink(cls, data: dict, file_name: str, date_format: str) -> CsvSinkFormat:
         source = cls.from_dict(data)
+        date = datetime.strptime(source.date, date_format).strftime("%Y-%m-%d")
         return CsvSinkFormat(
             review_id=source.review_id,
             rating=int(source.rating),
-            date=source.date,
+            date=date,
             text=source.text,
             source_type="csv",
-            source=file_name
+            source=file_name,
+            city=source.city,
+            country=source.country,
+            user=source.user
         )
 
 
@@ -73,6 +63,14 @@ class CloudStorageLoader:
         blob = self._bucket.get_blob(file_name, client=self._storage_client)
         blob_io = StringIO(blob.download_as_string().decode('utf-8'))
         reader = csv.reader(blob_io)
+        date_format = next(reader)[1]
         header = next(reader)
         for row in reader:
-            yield CsvSourceFormat.from_dict_to_sink(dict(zip(header, row)), file_name=file_name)
+            try:
+                yield CsvSourceFormat.from_dict_to_sink(
+                    dict(zip(header, row)),
+                    file_name=file_name,
+                    date_format=date_format
+                )
+            except ValueError:
+                continue

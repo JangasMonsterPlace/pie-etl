@@ -4,7 +4,6 @@ import google.cloud.functions.context
 from flask import Request
 import functions_framework
 
-from google.oauth2 import service_account
 from google.cloud import workflows_v1beta
 from google.cloud.workflows import executions_v1beta
 from google.cloud import bigquery
@@ -15,11 +14,12 @@ from common import extract_csv
 
 @functions_framework.http
 def load_to_bigquery(request: Request) -> str:
+    file_name = request.args.get("file_name")
     client = bigquery.Client(credentials=GCP_Project.CREDENTIALS.value)
     with extract_csv.CloudStorageLoader() as source:
         client.insert_rows_json(
             "easy-as-pie-hackathon.nlp.raw-data",
-            json_rows=[row.__dict__ for row in source.load_csv_data("DisneylandReviews.csv")]
+            json_rows=[row.__dict__ for row in source.load_csv_data(file_name)]
         )
     return "Hello BigQuery"
 
