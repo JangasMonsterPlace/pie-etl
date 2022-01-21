@@ -1,0 +1,8 @@
+steps:
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    args: ["./scripts/deploy-load_to_bigquery.sh"]
+    waitFor: ["-"]
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    args: ["./scripts/deploy-load_to_elasticsearch.sh"]
+    waitFor: ["-"]
